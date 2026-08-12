@@ -494,6 +494,30 @@ static void write_root_script(void) {
       "  exit 1\n"
       "fi\n"
       
+      "if ! grep -q kernelsu /proc/modules 2>/dev/null; then\n"
+      "  KVER=$(uname -r | cut -d. -f1-2)\n"
+      "  AVER=$(uname -r | grep -o 'android[0-9]*' | head -1)\n" 
+      "  KMI=\"${AVER}-${KVER}\"\n"
+      "  if [ -z \"$AVER\" ] || [ -z \"$KVER\" ]; then KMI=android15-6.6; fi\n"
+      "  echo \"[*] late-load kmi=$KMI\" >>\"$LOG\"\n"
+      
+      "  mkdir -p /data/adb/ksu 2>/dev/null\n"
+      "  setsid \"$KSUD\" late-load --kmi \"$KMI\" --allow-shell </dev/null >/dev/null 2>&1 &\n"
+      "fi\n"
+      
+      "KSU_READY=0\n"
+
+      "for i in $(seq 1 30); do\n"
+      "  if grep -q kernelsu /proc/modules 2>/dev/null; then KSU_READY=1; break; fi\n"
+      "  sleep 1\n"
+      "done\n"
+      
+      "if [ \"$KSU_READY\" -ne 1 ]; then\n"
+      "  echo '[!] KernelSU module not loaded; SELinux policy/enforcing unchanged' | tee -a \"$LOG\"\n"
+      "  exit 1\n"
+      "fi\n"
+      
+      "echo '[+] KernelSU module loaded' | tee -a \"$LOG\"\n"
     
       "if [ -n \"$APK\" ] && [ -x \"$KSUD\" ]; then\n"
       "  echo \"[*] binding manager apk=$APK\" >>\"$LOG\"\n"
