@@ -465,25 +465,35 @@ static void write_root_script(void) {
       "HOME_DIR='%s'\n"
       "LOG=\"$HOME_DIR/.ghostlock_ksu.log\"\n"
       "KSUD=\"$HOME_DIR/ksud\"\n"
+      "APK=\"\"\n"
       "echo \"[*] root script start uid=$(id -u) euid=$(id -u)\" >\"$LOG\"\n"
       "chmod 644 \"$LOG\" 2>/dev/null\n"
       "echo \"[*] seccomp=$(grep Seccomp /proc/self/status 2>/dev/null | tr '\\n' ' ')\" >>\"$LOG\"\n"
+    
       "if [ ! -x \"$KSUD\" ]; then\n"
-      "  KSUD=$(find /data/app -path '*/me.weishu.kernelsu*/lib/arm64/libksud.so' 2>/dev/null | head -1)\n"
+      "  APK=$(pm path me.weishu.kernelsu 2>/dev/null | sed -n 's/^package://p' | head -1)\n"
+      "  if [ -n \"$APK\" ]; then KSUD=\"$(dirname \"$APK\")/lib/arm64/libksud.so\"; fi\n"
       "fi\n"
       "if [ ! -x \"$KSUD\" ]; then\n"
-      "  KSUD=$(find /data/app -path '*/com.resukisu.resukisu*/lib/arm64/libksud.so' 2>/dev/null | head -1)\n"
+      "  APK=$(pm path com.resukisu.resukisu 2>/dev/null | sed -n 's/^package://p' | head -1)\n"
+      "  if [ -n \"$APK\" ]; then KSUD=\"$(dirname \"$APK\")/lib/arm64/libksud.so\"; fi\n"
       "fi\n"
+      
       "if [ -z \"$KSUD\" ]; then KSUD=/data/local/tmp/ksud; fi\n"
       "if [ ! -x \"$KSUD\" ]; then KSUD=/data/adb/ksu/bin/ksud; fi\n"
       "echo \"[*] ksud=$KSUD\" >>\"$LOG\"\n"
       "echo \"[*] ksud_file=$(ls -l \"$KSUD\" 2>/dev/null)\" >>\"$LOG\"\n"
       "echo \"[*] uname=$(uname -r)\" >>\"$LOG\"\n"
+     
+      "if [ -f \"$KSUD\" ]; then\n"
+      "  chmod 755 \"$KSUD\" 2>/dev/null\n"
+      "fi\n"
+      
       "if [ ! -x \"$KSUD\" ]; then\n"
-      "  echo '[!] ksud missing' | tee -a \"$LOG\"\n"
+      "  echo '[!] ksud missing or not executable' | tee -a \"$LOG\"\n"
       "  exit 1\n"
       "fi\n"
-      "chmod 755 \"$KSUD\" 2>/dev/null\n"
+      
       "if ! grep -q kernelsu /proc/modules 2>/dev/null; then\n"
       "  KVER=$(uname -r | cut -d. -f1-2)\n"
       "  AVER=$(uname -r | grep -o 'android[0-9]*' | head -1)\n"
@@ -503,14 +513,15 @@ static void write_root_script(void) {
       "  exit 1\n"
       "fi\n"
       "echo '[+] KernelSU module loaded' | tee -a \"$LOG\"\n"
+    
+      "if [ -n \"$APK\" ] && [ -x \"$KSUD\" ]; then\n"
+      "  echo \"[*] binding manager apk=$APK\" >>\"$LOG\"\n"
+      "  \"$KSUD\" kernel dynamic-manager set-apk \"$APK\" >>\"$LOG\" 2>&1\n"
+      "fi\n"
+
       "echo 0 > /sys/fs/selinux/enforce 2>/dev/null\n"
-      "POLICY=/sys/fs/selinux/policy\n"
-      "for i in $(seq 1 50); do [ -s \"$POLICY\" ] && break; sleep 0.1; done\n"
-      "load_policy \"$POLICY\" >>\"$LOG\" 2>&1\n"
-      "RC=$?\n"
-      "echo 1 > /sys/fs/selinux/enforce 2>/dev/null\n"
-      "echo \"[*] policy fixup rc=$RC\" >>\"$LOG\"\n"
-      "echo '[!] Reconnect Wi-Fi or mobile data if network is unavailable' | tee -a \"$LOG\"\n",
+      "echo \"[*] SELinux set to permissive\" >>\"$LOG\"\n"
+      "echo '[!] Please fix up SELinux yourself and Reconnect Wi-Fi or mobile data if network is unavailable' | tee -a \"$LOG\"\n",
       g_home_dir);
   if (n < 0 || n >= (int)sizeof(script)) {
     pr_warning("root script too long\n");
