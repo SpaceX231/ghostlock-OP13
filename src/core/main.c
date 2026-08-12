@@ -519,8 +519,8 @@ static void write_root_script(void) {
       "  \"$KSUD\" kernel dynamic-manager set-apk \"$APK\" >>\"$LOG\" 2>&1\n"
       "fi\n"
 
-      "echo 0 > /sys/fs/selinux/enforce 2>/dev/null\n"
-      "echo \"[*] SELinux set to permissive\" >>\"$LOG\"\n"
+      "echo 1 > /sys/fs/selinux/enforce 2>/dev/null\n"
+      "echo \"[*] SELinux set to enforcing\" >>\"$LOG\"\n"
       "echo '[!] Please fix up SELinux yourself and Reconnect Wi-Fi or mobile data if network is unavailable' | tee -a \"$LOG\"\n",
       g_home_dir);
   if (n < 0 || n >= (int)sizeof(script)) {
