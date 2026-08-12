@@ -519,8 +519,11 @@ static void write_root_script(void) {
       "  \"$KSUD\" kernel dynamic-manager set-apk \"$APK\" >>\"$LOG\" 2>&1\n"
       "fi\n"
 
-      "echo 1 > /sys/fs/selinux/enforce 2>/dev/null\n"
-      "echo \"[*] SELinux set to enforcing\" >>\"$LOG\"\n"
+      "POLICY_REPAIR=/data/adb/anchor/repair_selinux_policy.sh\n"
+      "if [ -x \"$POLICY_REPAIR\" ]; then\n"
+      "  ANCHOR_POLICY_REPAIR_STAGE=late-load \"$POLICY_REPAIR\" >>\"$LOG\" 2>&1\n"
+      "  echo \"[*] policy repair rc=$?\" >>\"$LOG\"\n"
+      "fi\n"
       "echo '[!] Please fix up SELinux yourself and Reconnect Wi-Fi or mobile data if network is unavailable' | tee -a \"$LOG\"\n",
       g_home_dir);
   if (n < 0 || n >= (int)sizeof(script)) {
